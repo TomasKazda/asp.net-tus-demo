@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input id="files" multiple type="file" />
+    <input id="ispublic" type="checkbox" /> je public
+
+    <script src="./js/tus.min.js"></script>
+    <script>
+      document.getElementById("files").addEventListener("change", function (e) {
+        // Get the selected file from the input element
+        // var file = e.target.files[0];
+
+        for (const file of e.target.files) {
+            console.log(file)
+            // Create a new tus upload
+        var upload = new tus.Upload(file, {
+          endpoint: "https://localhost:7244/upload/",
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          metadata: {
+            filename: file.name,
+            filetype: file.type,
+            ispublic: document.getElementById("ispublic").checked ? "1" : "0"
+          },
+          onError: function (error) {
+            console.log("Failed because: " + error);
+          },
+          onProgress: function (bytesUploaded, bytesTotal) {
+            var percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+            console.log(bytesUploaded, bytesTotal, percentage + "%");
+          },
+          onSuccess: function () {
+            console.log("Download %s from %s", upload.file.name, upload.url);
+          },
+        });
+
+        // Check if there are any previous uploads to continue.
+        upload.findPreviousUploads().then(function (previousUploads) {
+          // Found previous uploads so we select the first one.
+          if (previousUploads.length) {
+            upload.resumeFromPreviousUpload(previousUploads[0]);
+          }
+
+          // Start the upload
+          upload.start();
+        });
+        }
+        
+      });
+    </script>
+  </body>
+</html>
